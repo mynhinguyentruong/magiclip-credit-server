@@ -40,13 +40,10 @@ func handleWebhookRoute (c *gin.Context) {
     return
   }
 
-  // read request body that was sent from Stripe
-  // ?client_reference_id=123
-
   endpointSecret:= os.Getenv("endpointSecret")
 
   if endpointSecret == "" {
-    fmt.Errorf("set env endpointSecret")
+    log.Println("ERROR: set env endpointSecret")
     c.AbortWithStatus(http.StatusServiceUnavailable)
     return
   }
@@ -73,7 +70,7 @@ func handleWebhookRoute (c *gin.Context) {
     if session.PaymentStatus == "paid" {
       if session.ClientReferenceID == "" {
         // can try to look up customer email provided in DB
-        fmt.Errorf("empty client_reference_id")
+        log.Println("ERROR: empty client_reference_id")
         c.AbortWithStatusJSON(http.StatusBadRequest, "empty client_reference_id")
         return
       }
@@ -103,7 +100,7 @@ func FulfillOrder(customer_id string, amount_total int64) {
   var err error
 	db, err = sql.Open("mysql", os.Getenv("DSN"))
 	if err != nil {
-		log.Fatal("failed to open db connection", err)
+    log.Println("ERROR: failed to open db connection", err)
 	}
 
   UpdateCredit(customer_id, credit)
@@ -117,7 +114,7 @@ func UpdateCredit(customer_id string, credit_amount int64) {
 	query := `UPDATE users SET credit = ? WHERE client_reference_id = ?`
   _, err := db.Exec(query, credit, customer_id)
 	if err != nil {
-		log.Fatal("(UpdateProduct) db.Exec", err)
+    log.Println("ERROR: (UpdateProduct) db.Exec", err)
 	}
 }
 
@@ -127,7 +124,7 @@ func GetCurrentCredit(customer_id string) int64 {
   query := `SELECT * FROM users WHERE client_reference_id = ?`
   err := db.QueryRow(query, customer_id).Scan(&user.ID, &user.Name, &user.Email, &user.Credit, &user.ClientReferenceID)
 	if err != nil {
-		log.Fatal("(GetCurrentCredit) db.Exec", err)
+    log.Println("ERROR: (GetCurrentCredit) db.Exec", err)
 	}
 
   return user.Credit
